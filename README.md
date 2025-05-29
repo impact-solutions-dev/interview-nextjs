@@ -10,6 +10,7 @@ Cílem zadání není ani tak finální funkční výsledek, jako spíše prově
 
 ### Vytvořte komponentu `InfiniteList`
    * Tech stack: Next.js, TypeScript
+   * Můžete využívat jakékoli knihovny, ale ze zkušenosti doporučujeme plain react.
    * Využijte React hooks (např. `useState`, `useEffect`) a `fetch` nebo `axios` pro získávání dat.
 
 ### API endpoint
@@ -19,23 +20,24 @@ Cílem zadání není ani tak finální funkční výsledek, jako spíše prově
    * **Response** (JSON):
      ```ts
      {
-       items: any[];           // pole položek
-       page: number;           // aktuální stránka
-       totalPages: number;     // počet všech stránek
-       itemsPerPage: number;   // počet položek na stránku (10)
-       totalItems: number;     // celkový počet položek (1000)
+       items: {                 // pole položek
+         id: number;
+         title: string;
+       }[];                    
+       page: number;            // aktuální stránka
+       totalPages: number;      // počet všech stránek
+       itemsPerPage: number;    // počet položek na stránku (10)
+       totalItems: number;      // celkový počet položek (1000)
      }
      ```
 
 ### Chování komponenty
-   * Po prvním načtení stránky zobrazte `items`.
+   * Po prvním načtení stránky zobrazte položky `items`.
    * Pod seznamem položek zobrazte tlačítko **„Načíst další“**.
-   * Po kliknutí na tlačítko:
-     1. Zvýšíte `page` o 1 (pokud `page < totalPages`).
-     2. Načtete další stránku (`GET /api/items?page={page}`).
-     3. Přidáte nové položky na konec stávajícího seznamu.
+   * Po kliknutí na tlačítko se z API načtou další položky a vloží se pod již načtené exitující položky
 
 ### Bonus (volitelně)
+   * Přidejte scrollování po načtení
    * Dejte tlačítku stav `disabled`, když jste na poslední stránce.
    * Přidejte jednoduchý loading indicator během načítání.
    * Využijte Server Components
