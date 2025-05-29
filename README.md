@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Zadání k pohovoru (Next.js + TypeScript)
+Cílem zadání není ani tak finální funkční výsledek, jako spíše prověřit vaši schopnost kriticky uvažovat, strukturovaně komunikovat a ukázat, že skutečně rozumíte principům použitého kódu. Sledujeme, jak přistupujete k rozdělení úkolu, jak formulujete dotazy, vysvětlujete své rozhodnutí a reagujete na případné komplikace – to vše je pro nás cennější než dokonalý „hotový“ komponent.
 
-## Getting Started
+### Naklonujte repozitář
+   ```bash
+   git clone https://github.com/impact-solutions-dev/interview-nextjs.git
+   cd interview-nextjs
+   npm install
+   ```
 
-First, run the development server:
+### Vytvořte komponentu `InfiniteList`
+   * Tech stack: Next.js, TypeScript
+   * Využijte React hooks (např. `useState`, `useEffect`) a `fetch` nebo `axios` pro získávání dat.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### API endpoint
+   * **URL**: `/api/items?page=<číslo stránky>`
+   * **Parametry**:
+     * `page` (number) – číslo stránky, výchozí 1
+   * **Response** (JSON):
+     ```ts
+     {
+       items: any[];           // pole položek
+       page: number;           // aktuální stránka
+       totalPages: number;     // počet všech stránek
+       itemsPerPage: number;   // počet položek na stránku (10)
+       totalItems: number;     // celkový počet položek (1000)
+     }
+     ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Chování komponenty
+   * Po prvním načtení stránky zobrazte `items`.
+   * Pod seznamem položek zobrazte tlačítko **„Načíst další“**.
+   * Po kliknutí na tlačítko:
+     1. Zvýšíte `page` o 1 (pokud `page < totalPages`).
+     2. Načtete další stránku (`GET /api/items?page={page}`).
+     3. Přidáte nové položky na konec stávajícího seznamu.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Bonus (volitelně)
+   * Dejte tlačítku stav `disabled`, když jste na poslední stránce.
+   * Přidejte jednoduchý loading indicator během načítání.
+   * Využijte Server Components
