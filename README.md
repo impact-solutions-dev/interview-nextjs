@@ -41,3 +41,4 @@ Cílem zadání není ani tak finální funkční výsledek, jako spíše prově
    * Dejte tlačítku stav `disabled`, když jste na poslední stránce.
    * Přidejte jednoduchý loading indicator během načítání.
    * Využijte Server Components
+<img width="712" alt="Screenshot 2025-05-29 at 12 43 49" src="https://github.com/user-attachments/assets/e16b0b94-ca67-4a45-87ca-8692cea9f8b6" />
