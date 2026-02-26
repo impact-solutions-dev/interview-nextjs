@@ -9,8 +9,7 @@ export async function getItemsPage(
   search?: string
 ): Promise<ItemsApiResponse> {
   const validPage = Math.max(1, page);
-  const offset = (validPage - 1) * ITEMS_PER_PAGE;
-  const searchTerm = search?.trim();
+  const searchTerm = search?.trim() || undefined;
 
   const searchCondition = searchTerm
     ? sql<boolean>`LOWER(title) LIKE LOWER(${"%" + searchTerm + "%"})`
@@ -20,21 +19,20 @@ export async function getItemsPage(
     ? db.selectFrom("items").where(searchCondition)
     : db.selectFrom("items");
 
-  const [items, countResult] = await Promise.all([
-    baseQuery
-      .select(["id", "title"])
-      .orderBy("id")
-      .limit(ITEMS_PER_PAGE)
-      .offset(offset)
-      .execute(),
-    baseQuery
-      .select((eb) => eb.fn.count<number>("id").as("count"))
-      .executeTakeFirst(),
-  ]);
-
+  const countResult = await baseQuery
+    .select((eb) => eb.fn.count<number>("id").as("count"))
+    .executeTakeFirst();
   const totalItems = Number(countResult?.count ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
   const clampedPage = Math.min(validPage, totalPages);
+  const offset = (clampedPage - 1) * ITEMS_PER_PAGE;
+
+  const items = await baseQuery
+    .select(["id", "title"])
+    .orderBy("id")
+    .limit(ITEMS_PER_PAGE)
+    .offset(offset)
+    .execute();
 
   return {
     items: items.map((item) => ({

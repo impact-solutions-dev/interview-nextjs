@@ -8,6 +8,12 @@ type InfiniteListProps = {
   initialData?: ItemsApiResponse;
 };
 
+type FetchItemsOptions = {
+  page: number;
+  search?: string;
+  append?: boolean;
+};
+
 export function InfiniteList({ initialData }: InfiniteListProps) {
   const [items, setItems] = useState<DummyItem[]>(initialData?.items ?? []);
   const [page, setPage] = useState(initialData?.page ?? 1);
@@ -19,33 +25,47 @@ export function InfiniteList({ initialData }: InfiniteListProps) {
   const listEndRef = useRef<HTMLDivElement>(null);
   const prevItemsLengthRef = useRef(initialData?.items?.length ?? 0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeRequestRef = useRef<AbortController | null>(null);
 
-  const fetchItems = useCallback(async (pageNum: number, searchTerm?: string) => {
+  const fetchItems = useCallback(async ({ page, search, append = false }: FetchItemsOptions) => {
+    activeRequestRef.current?.abort();
+    const controller = new AbortController();
+    activeRequestRef.current = controller;
+
     setIsLoading(true);
     setError(null);
 
     try {
-      const params = new URLSearchParams({ page: String(pageNum) });
-      if (searchTerm?.trim()) {
-        params.set("search", searchTerm.trim());
+      const params = new URLSearchParams({ page: String(page) });
+      const normalizedSearch = search?.trim();
+      if (normalizedSearch) {
+        params.set("search", normalizedSearch);
       }
-      const res = await fetch(`/api/items?${params.toString()}`);
+      const res = await fetch(`/api/items?${params.toString()}`, {
+        signal: controller.signal,
+      });
       if (!res.ok) {
         throw new Error("Nepodařilo se načíst položky");
       }
       const data: ItemsApiResponse = await res.json();
 
-      if (pageNum === 1) {
-        setItems(data.items);
-      } else {
+      if (append) {
         setItems((prev) => [...prev, ...data.items]);
+      } else {
+        setItems(data.items);
       }
       setPage(data.page);
       setTotalPages(data.totalPages);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
       setError(err instanceof Error ? err.message : "Došlo k chybě");
     } finally {
-      setIsLoading(false);
+      if (activeRequestRef.current === controller) {
+        activeRequestRef.current = null;
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -70,8 +90,14 @@ export function InfiniteList({ initialData }: InfiniteListProps) {
       skipInitialSearchFetchRef.current = false;
       return;
     }
-    fetchItems(1, search);
+    void fetchItems({ page: 1, search });
   }, [search, fetchItems]);
+
+  useEffect(() => {
+    return () => {
+      activeRequestRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (items.length > prevItemsLengthRef.current && prevItemsLengthRef.current > 0) {
@@ -84,7 +110,7 @@ export function InfiniteList({ initialData }: InfiniteListProps) {
 
   const handleLoadMore = () => {
     if (page < totalPages && !isLoading) {
-      fetchItems(page + 1, search);
+      void fetchItems({ page: page + 1, search, append: true });
     }
   };
 
