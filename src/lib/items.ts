@@ -52,10 +52,12 @@ export async function getItemsPage(
 
   return {
     items: items.map((item) => ({
-      id: Number(item.id),
-      title: String(item.title),
-      categoryId: Number(item.categoryId),
-      categoryName: String(item.categoryName),
+      id: item.id,
+      title: item.title,
+      category: {
+        id: item.categoryId,
+        name: item.categoryName,
+      },
     })),
     page: clampedPage,
     totalPages,

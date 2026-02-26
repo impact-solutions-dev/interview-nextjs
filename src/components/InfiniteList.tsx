@@ -204,7 +204,7 @@ export function InfiniteList({ initialData, categories = EMPTY_CATEGORIES }: Inf
                 {item.title}
               </span>
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                {item.categoryName}
+                {item.category.name}
               </span>
             </div>
             <button
