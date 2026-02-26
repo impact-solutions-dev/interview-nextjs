@@ -35,11 +35,12 @@ Vytvořte komponentu, která zobrazí seznam položek z API a umožní postupné
   items: {
     id: number;
     title: string;
-  }[];
-  page: number;            // aktuální stránka
-  totalPages: number;      // počet všech stránek
-  itemsPerPage: number;    // počet položek na stránku (10)
-  totalItems: number;      // celkový počet položek (1000)
+  }
+  [];
+  page: number; // aktuální stránka
+  totalPages: number; // počet všech stránek
+  itemsPerPage: number; // počet položek na stránku (10)
+  totalItems: number; // celkový počet položek (1000)
 }
 ```
 
@@ -60,7 +61,7 @@ Vytvořte komponentu, která zobrazí seznam položek z API a umožní postupné
 
 ## Úkol 2 — Databáze
 
-Momentálně API vrací data z pole v paměti. Přepište to tak, aby položky žily v databázi. V repozitáři je připravený libsql in-memory setup (`db/index.ts`). Při startu serveru se DB naplní seed daty.
+Momentálně API vrací data z pole v paměti. Přepište to tak, aby položky žily v databázi. V repozitáři je připravený libsql in-memory setup (`db/index.ts`). Testovací data je možné vytvořit pomocí `pnpm db:seed`
 
 ---
 
