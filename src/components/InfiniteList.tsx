@@ -12,17 +12,24 @@ export function InfiniteList({ initialData }: InfiniteListProps) {
   const [items, setItems] = useState<DummyItem[]>(initialData?.items ?? []);
   const [page, setPage] = useState(initialData?.page ?? 1);
   const [totalPages, setTotalPages] = useState(initialData?.totalPages ?? 1);
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listEndRef = useRef<HTMLDivElement>(null);
   const prevItemsLengthRef = useRef(initialData?.items?.length ?? 0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchItems = useCallback(async (pageNum: number) => {
+  const fetchItems = useCallback(async (pageNum: number, searchTerm?: string) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const res = await fetch(`/api/items?page=${pageNum}`);
+      const params = new URLSearchParams({ page: String(pageNum) });
+      if (searchTerm?.trim()) {
+        params.set("search", searchTerm.trim());
+      }
+      const res = await fetch(`/api/items?${params.toString()}`);
       if (!res.ok) {
         throw new Error("Nepodařilo se načíst položky");
       }
@@ -43,10 +50,28 @@ export function InfiniteList({ initialData }: InfiniteListProps) {
   }, []);
 
   useEffect(() => {
-    if (!initialData) {
-      fetchItems(1);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
     }
-  }, [fetchItems, initialData]);
+    debounceRef.current = setTimeout(() => {
+      setSearch(searchInput);
+      debounceRef.current = null;
+    }, 300);
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [searchInput]);
+
+  const skipInitialSearchFetchRef = useRef(!!initialData);
+  useEffect(() => {
+    if (skipInitialSearchFetchRef.current && search === "") {
+      skipInitialSearchFetchRef.current = false;
+      return;
+    }
+    fetchItems(1, search);
+  }, [search, fetchItems]);
 
   useEffect(() => {
     if (items.length > prevItemsLengthRef.current && prevItemsLengthRef.current > 0) {
@@ -59,7 +84,7 @@ export function InfiniteList({ initialData }: InfiniteListProps) {
 
   const handleLoadMore = () => {
     if (page < totalPages && !isLoading) {
-      fetchItems(page + 1);
+      fetchItems(page + 1, search);
     }
   };
 
@@ -86,6 +111,20 @@ export function InfiniteList({ initialData }: InfiniteListProps) {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
+      <div className="mb-4">
+        <label htmlFor="search" className="sr-only">
+          Vyhledat položky
+        </label>
+        <input
+          id="search"
+          type="search"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Vyhledat položky…"
+          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          aria-label="Vyhledat položky"
+        />
+      </div>
       {error && (
         <div className="mb-4 p-4 text-red-600 bg-red-50 dark:bg-red-950/30 rounded-lg">
           {error}

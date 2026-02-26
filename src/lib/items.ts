@@ -1,22 +1,33 @@
+import { sql } from "kysely";
 import { db } from "@/db";
 import type { ItemsApiResponse } from "@/types/api";
 
 const ITEMS_PER_PAGE = 10;
 
-export async function getItemsPage(page: number): Promise<ItemsApiResponse> {
+export async function getItemsPage(
+  page: number,
+  search?: string
+): Promise<ItemsApiResponse> {
   const validPage = Math.max(1, page);
   const offset = (validPage - 1) * ITEMS_PER_PAGE;
+  const searchTerm = search?.trim();
+
+  const searchCondition = searchTerm
+    ? sql<boolean>`LOWER(title) LIKE LOWER(${"%" + searchTerm + "%"})`
+    : undefined;
+
+  const baseQuery = searchCondition
+    ? db.selectFrom("items").where(searchCondition)
+    : db.selectFrom("items");
 
   const [items, countResult] = await Promise.all([
-    db
-      .selectFrom("items")
+    baseQuery
       .select(["id", "title"])
       .orderBy("id")
       .limit(ITEMS_PER_PAGE)
       .offset(offset)
       .execute(),
-    db
-      .selectFrom("items")
+    baseQuery
       .select((eb) => eb.fn.count<number>("id").as("count"))
       .executeTakeFirst(),
   ]);
