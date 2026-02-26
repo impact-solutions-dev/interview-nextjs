@@ -1,26 +1,42 @@
 import { sql } from "kysely";
 import { db } from "@/db";
 import type { ItemsApiResponse } from "@/types/api";
+import type { Category } from "@/types/DummyItem";
 
 const ITEMS_PER_PAGE = 10;
 
+export async function getCategories(): Promise<Category[]> {
+  const rows = await db
+    .selectFrom("categories")
+    .select(["id", "name"])
+    .orderBy("id")
+    .execute();
+  return rows.map((r) => ({ id: Number(r.id), name: String(r.name) }));
+}
+
 export async function getItemsPage(
   page: number,
-  search?: string
+  options?: { search?: string; categoryId?: number }
 ): Promise<ItemsApiResponse> {
   const validPage = Math.max(1, page);
-  const searchTerm = search?.trim() || undefined;
+  const searchTerm = options?.search?.trim() || undefined;
+  const categoryId = options?.categoryId;
 
-  const searchCondition = searchTerm
-    ? sql<boolean>`LOWER(title) LIKE LOWER(${"%" + searchTerm + "%"})`
-    : undefined;
+  let baseQuery = db
+    .selectFrom("items")
+    .innerJoin("categories", "items.categoryId", "categories.id");
 
-  const baseQuery = searchCondition
-    ? db.selectFrom("items").where(searchCondition)
-    : db.selectFrom("items");
+  if (searchTerm) {
+    baseQuery = baseQuery.where(
+      sql<boolean>`LOWER(items.title) LIKE LOWER(${"%" + searchTerm + "%"})`
+    );
+  }
+  if (categoryId != null && categoryId > 0) {
+    baseQuery = baseQuery.where("items.categoryId", "=", categoryId);
+  }
 
   const countResult = await baseQuery
-    .select((eb) => eb.fn.count<number>("id").as("count"))
+    .select((eb) => eb.fn.countAll().as("count"))
     .executeTakeFirst();
   const totalItems = Number(countResult?.count ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
@@ -28,8 +44,8 @@ export async function getItemsPage(
   const offset = (clampedPage - 1) * ITEMS_PER_PAGE;
 
   const items = await baseQuery
-    .select(["id", "title"])
-    .orderBy("id")
+    .select(["items.id", "items.title", "categories.id as categoryId", "categories.name as categoryName"])
+    .orderBy("items.id")
     .limit(ITEMS_PER_PAGE)
     .offset(offset)
     .execute();
@@ -38,6 +54,8 @@ export async function getItemsPage(
     items: items.map((item) => ({
       id: Number(item.id),
       title: String(item.title),
+      categoryId: Number(item.categoryId),
+      categoryName: String(item.categoryName),
     })),
     page: clampedPage,
     totalPages,

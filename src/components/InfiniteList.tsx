@@ -3,23 +3,29 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { DummyItem } from "@/types/DummyItem";
 import type { ItemsApiResponse } from "@/types/api";
+import type { Category } from "@/types/DummyItem";
 
 type InfiniteListProps = {
   initialData?: ItemsApiResponse;
+  categories?: Category[];
 };
 
 type FetchItemsOptions = {
   page: number;
   search?: string;
+  categoryId?: number;
   append?: boolean;
 };
 
-export function InfiniteList({ initialData }: InfiniteListProps) {
+const EMPTY_CATEGORIES: Category[] = [];
+
+export function InfiniteList({ initialData, categories = EMPTY_CATEGORIES }: InfiniteListProps) {
   const [items, setItems] = useState<DummyItem[]>(initialData?.items ?? []);
   const [page, setPage] = useState(initialData?.page ?? 1);
   const [totalPages, setTotalPages] = useState(initialData?.totalPages ?? 1);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [categoryId, setCategoryId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listEndRef = useRef<HTMLDivElement>(null);
@@ -27,7 +33,7 @@ export function InfiniteList({ initialData }: InfiniteListProps) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeRequestRef = useRef<AbortController | null>(null);
 
-  const fetchItems = useCallback(async ({ page, search, append = false }: FetchItemsOptions) => {
+  const fetchItems = useCallback(async ({ page, search, categoryId: catId, append = false }: FetchItemsOptions) => {
     activeRequestRef.current?.abort();
     const controller = new AbortController();
     activeRequestRef.current = controller;
@@ -40,6 +46,9 @@ export function InfiniteList({ initialData }: InfiniteListProps) {
       const normalizedSearch = search?.trim();
       if (normalizedSearch) {
         params.set("search", normalizedSearch);
+      }
+      if (catId != null) {
+        params.set("category", String(catId));
       }
       const res = await fetch(`/api/items?${params.toString()}`, {
         signal: controller.signal,
@@ -84,14 +93,14 @@ export function InfiniteList({ initialData }: InfiniteListProps) {
     };
   }, [searchInput]);
 
-  const skipInitialSearchFetchRef = useRef(!!initialData);
+  const skipInitialFetchRef = useRef(!!initialData);
   useEffect(() => {
-    if (skipInitialSearchFetchRef.current && search === "") {
-      skipInitialSearchFetchRef.current = false;
+    if (skipInitialFetchRef.current && search === "" && categoryId == null) {
+      skipInitialFetchRef.current = false;
       return;
     }
-    void fetchItems({ page: 1, search });
-  }, [search, fetchItems]);
+    void fetchItems({ page: 1, search, categoryId: categoryId ?? undefined });
+  }, [search, categoryId, fetchItems]);
 
   useEffect(() => {
     return () => {
@@ -110,7 +119,12 @@ export function InfiniteList({ initialData }: InfiniteListProps) {
 
   const handleLoadMore = () => {
     if (page < totalPages && !isLoading) {
-      void fetchItems({ page: page + 1, search, append: true });
+      void fetchItems({
+        page: page + 1,
+        search,
+        categoryId: categoryId ?? undefined,
+        append: true,
+      });
     }
   };
 
@@ -137,19 +151,42 @@ export function InfiniteList({ initialData }: InfiniteListProps) {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <div className="mb-4">
-        <label htmlFor="search" className="sr-only">
-          Vyhledat položky
-        </label>
-        <input
-          id="search"
-          type="search"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Vyhledat položky…"
-          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          aria-label="Vyhledat položky"
-        />
+      <div className="mb-4 flex flex-col sm:flex-row gap-3">
+        <div className="flex-1">
+          <label htmlFor="search" className="sr-only">
+            Vyhledat položky
+          </label>
+          <input
+            id="search"
+            type="search"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Vyhledat položky…"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            aria-label="Vyhledat položky"
+          />
+        </div>
+        <div className="sm:w-48">
+          <label htmlFor="category" className="sr-only">
+            Filtrovat podle kategorie
+          </label>
+          <select
+            id="category"
+            value={categoryId ?? ""}
+            onChange={(e) =>
+              setCategoryId(e.target.value === "" ? null : Number(e.target.value))
+            }
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            aria-label="Filtrovat podle kategorie"
+          >
+            <option value="">Všechny kategorie</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       {error && (
         <div className="mb-4 p-4 text-red-600 bg-red-50 dark:bg-red-950/30 rounded-lg">
@@ -162,9 +199,14 @@ export function InfiniteList({ initialData }: InfiniteListProps) {
             key={item.id}
             className="py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex items-center justify-between gap-3"
           >
-            <span className="text-gray-900 dark:text-gray-100 flex-1 min-w-0">
-              {item.title}
-            </span>
+            <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center sm:gap-2">
+              <span className="text-gray-900 dark:text-gray-100">
+                {item.title}
+              </span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {item.categoryName}
+              </span>
+            </div>
             <button
               type="button"
               onClick={() => handleDelete(item)}

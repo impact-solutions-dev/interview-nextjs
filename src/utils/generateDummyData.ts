@@ -1,8 +1,8 @@
-import { DummyItem } from "@/types/DummyItem";
+const NUM_CATEGORIES = 3;
 
-export function generateDummyData(count: number): DummyItem[] {
+export function generateDummyData(count: number): { title: string; categoryId: number }[] {
   return Array.from({ length: count }, (_, index) => ({
-    id: index + 1,
     title: `Item ${index + 1}`,
+    categoryId: (index % NUM_CATEGORIES) + 1,
   }));
 }
