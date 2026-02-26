@@ -63,25 +63,51 @@ export function InfiniteList({ initialData }: InfiniteListProps) {
     }
   };
 
-  const isLastPage = page >= totalPages;
+  const handleDelete = async (item: DummyItem) => {
+    setItems((prev) => prev.filter((i) => i.id !== item.id));
+    setError(null);
 
-  if (error) {
-    return (
-      <div className="p-4 text-red-600 bg-red-50 dark:bg-red-950/30 rounded-lg">
-        {error}
-      </div>
-    );
-  }
+    try {
+      const res = await fetch(`/api/items/${item.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        throw new Error("Nepodařilo se smazat položku");
+      }
+    } catch (err) {
+      setItems((prev) => {
+        const idx = prev.findIndex((i) => i.id > item.id);
+        const insertAt = idx === -1 ? prev.length : idx;
+        return [...prev.slice(0, insertAt), item, ...prev.slice(insertAt)];
+      });
+      setError(err instanceof Error ? err.message : "Došlo k chybě");
+    }
+  };
+
+  const isLastPage = page >= totalPages;
 
   return (
     <div className="w-full max-w-2xl mx-auto">
+      {error && (
+        <div className="mb-4 p-4 text-red-600 bg-red-50 dark:bg-red-950/30 rounded-lg">
+          {error}
+        </div>
+      )}
       <ul className="divide-y divide-gray-200 dark:divide-gray-700">
         {items.map((item) => (
           <li
             key={item.id}
-            className="py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+            className="py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex items-center justify-between gap-3"
           >
-            <span className="text-gray-900 dark:text-gray-100">{item.title}</span>
+            <span className="text-gray-900 dark:text-gray-100 flex-1 min-w-0">
+              {item.title}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleDelete(item)}
+              className="shrink-0 px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/50 rounded transition-colors"
+              aria-label={`Smazat ${item.title}`}
+            >
+              Smazat
+            </button>
           </li>
         ))}
       </ul>

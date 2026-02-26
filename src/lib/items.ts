@@ -36,3 +36,12 @@ export async function getItemsPage(page: number): Promise<ItemsApiResponse> {
     totalItems,
   };
 }
+
+export async function deleteItem(id: number): Promise<boolean> {
+  const result = await db
+    .deleteFrom("items")
+    .where("id", "=", id)
+    .executeTakeFirst();
+
+  return Number(result.numDeletedRows) > 0;
+}
