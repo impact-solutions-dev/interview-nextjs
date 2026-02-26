@@ -21,6 +21,8 @@ Vytvořte komponentu, která zobrazí seznam položek z API a umožní postupné
 - Můžete využívat jakékoli knihovny, ale ze zkušenosti doporučujeme plain React.
 - Využijte React hooks (např. `useState`, `useEffect`) a `fetch` pro získávání dat.
 
+<img width="712" alt="Screenshot 2025-05-29 at 12 43 49" src="./public/interview-task-example.png" />
+
 ### API endpoint
 
 - **URL**: `/api/items?page=<číslo stránky>`
